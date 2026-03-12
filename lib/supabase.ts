@@ -165,6 +165,70 @@ export type Database = {
         };
         Relationships: [];
       };
+      generator_drafts: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          payload: any;
+          resume_html: string | null;
+          cover_html: string | null;
+          resume_style: string;
+          resume_template: string;
+          cover_template: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          title?: string;
+          payload?: any;
+          resume_html?: string | null;
+          cover_html?: string | null;
+          resume_style?: string;
+          resume_template?: string;
+          cover_template?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          title?: string;
+          payload?: any;
+          resume_html?: string | null;
+          cover_html?: string | null;
+          resume_style?: string;
+          resume_template?: string;
+          cover_template?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      generator_versions: {
+        Row: {
+          id: string;
+          user_id: string;
+          generator_id: string;
+          doc_type: string;
+          content: string;
+          version_index: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          generator_id: string;
+          doc_type: string;
+          content: string;
+          version_index?: number;
+          created_at?: string;
+        };
+        Update: {
+          content?: string;
+          version_index?: number;
+        };
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: { [_ in never]: never };

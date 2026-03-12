@@ -38,17 +38,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     async function boot() {
-      const { data } = await supabase.auth.getSession();
-      if (cancelled) return;
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (cancelled) return;
 
-      const nextUser = data.session?.user ?? null;
-      setUser(nextUser);
+        const nextUser = data.session?.user ?? null;
+        setUser(nextUser);
+        setLoading(false);
 
-      if (nextUser?.email) {
-        await ensureProfile({ id: nextUser.id, email: nextUser.email });
+        if (nextUser?.email) {
+          void ensureProfile({ id: nextUser.id, email: nextUser.email }).catch(() => {
+            // non-blocking profile sync
+          });
+        }
+      } catch {
+        if (cancelled) return;
+        setUser(null);
+        setLoading(false);
       }
-
-      setLoading(false);
     }
 
     boot();

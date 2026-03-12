@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { DashboardLayout } from '@/components/dashboard-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CirclePlus as PlusCircle, FileText, Briefcase, TrendingUp } from 'lucide-react';
+import { CirclePlus as PlusCircle, FileText, Briefcase, TrendingUp, Sparkles, Award } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
@@ -15,14 +15,18 @@ export default function DashboardPage() {
     totalResumes: 0,
     totalApplications: 0,
     totalCoverLetters: 0,
+    totalDrafts: 0,
+    totalAiVersions: 0,
   });
+  const [templateUsage, setTemplateUsage] = useState<{ resume: string[]; cover: string[] }>({ resume: [], cover: [] });
+  const [badges, setBadges] = useState<string[]>([]);
   const [recentApplications, setRecentApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadDashboardData = useCallback(async () => {
     if (!user) return;
     try {
-      const [resumesCountRes, applicationsCountRes, coverLettersCountRes, recentAppsRes] = await Promise.all([
+      const [resumesCountRes, applicationsCountRes, coverLettersCountRes, recentAppsRes, draftsRes, versionsRes] = await Promise.all([
         supabase.from('resumes').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
         supabase
           .from('job_applications')
@@ -35,13 +39,33 @@ export default function DashboardPage() {
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(5),
+        supabase.from('generator_drafts').select('resume_template, cover_template').eq('user_id', user.id),
+        supabase.from('generator_versions').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
       ]);
 
       setStats({
         totalResumes: resumesCountRes.count || 0,
         totalApplications: applicationsCountRes.count || 0,
         totalCoverLetters: coverLettersCountRes.count || 0,
+        totalDrafts: draftsRes.data?.length || 0,
+        totalAiVersions: versionsRes.count || 0,
       });
+
+      if (draftsRes.data) {
+        const resumeTemplates = draftsRes.data.map((d) => d.resume_template).filter(Boolean);
+        const coverTemplates = draftsRes.data.map((d) => d.cover_template).filter(Boolean);
+        setTemplateUsage({
+          resume: Array.from(new Set(resumeTemplates)),
+          cover: Array.from(new Set(coverTemplates)),
+        });
+      }
+
+      const nextBadges: string[] = [];
+      if ((resumesCountRes.count || 0) > 0) nextBadges.push('First Resume');
+      if ((coverLettersCountRes.count || 0) > 0) nextBadges.push('First Cover Letter');
+      if ((versionsRes.count || 0) >= 5) nextBadges.push('AI Power User');
+      if ((draftsRes.data?.length || 0) >= 3) nextBadges.push('Multi-Draft Builder');
+      setBadges(nextBadges);
 
       setRecentApplications(recentAppsRes.data || []);
     } catch (error) {
@@ -81,7 +105,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
-          <Card>
+          <Card className="transition-all hover:shadow-lg hover:-translate-y-0.5">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Resumes</CardTitle>
               <FileText className="h-4 w-4 text-slate-500" />
@@ -94,7 +118,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="transition-all hover:shadow-lg hover:-translate-y-0.5">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Applications</CardTitle>
               <Briefcase className="h-4 w-4 text-slate-500" />
@@ -107,7 +131,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="transition-all hover:shadow-lg hover:-translate-y-0.5">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Cover Letters</CardTitle>
               <TrendingUp className="h-4 w-4 text-slate-500" />
@@ -121,7 +145,64 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        <Card>
+        <div className="grid gap-6 md:grid-cols-3">
+          <Card className="transition-all hover:shadow-lg hover:-translate-y-0.5">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">AI Drafts</CardTitle>
+              <Sparkles className="h-4 w-4 text-slate-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalDrafts}</div>
+              <p className="text-xs text-slate-500 mt-1">Saved generator drafts</p>
+            </CardContent>
+          </Card>
+          <Card className="transition-all hover:shadow-lg hover:-translate-y-0.5">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">AI Versions</CardTitle>
+              <TrendingUp className="h-4 w-4 text-slate-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalAiVersions}</div>
+              <p className="text-xs text-slate-500 mt-1">Generated iterations</p>
+            </CardContent>
+          </Card>
+          <Card className="transition-all hover:shadow-lg hover:-translate-y-0.5">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Templates Used</CardTitle>
+              <FileText className="h-4 w-4 text-slate-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {templateUsage.resume.length + templateUsage.cover.length}
+              </div>
+              <p className="text-xs text-slate-500 mt-1">Resume + cover templates</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {badges.length > 0 && (
+          <Card className="transition-all hover:shadow-lg hover:-translate-y-0.5">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Award className="h-5 w-5 text-amber-500" />
+                Milestones
+              </CardTitle>
+              <CardDescription>Keep going to unlock more.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              {badges.map((badge) => (
+                <span
+                  key={badge}
+                  className="text-xs font-semibold px-3 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200"
+                >
+                  {badge}
+                </span>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        <Card className="transition-all hover:shadow-lg hover:-translate-y-0.5">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>

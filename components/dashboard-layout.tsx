@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { FileText, LayoutDashboard, CirclePlus as PlusCircle, LogOut, Menu, X, User } from 'lucide-react';
+import { FileText, LayoutDashboard, CirclePlus as PlusCircle, LogOut, Menu, X, User, Wand2, Layers, Settings, FileSignature } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 interface DashboardLayoutProps {
@@ -38,8 +38,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'AI Generator', href: '/dashboard/generate', icon: Wand2 },
+    { name: 'Resume Builder', href: '/dashboard/resume', icon: FileText },
+    { name: 'Cover Letter', href: '/dashboard/cover-letter', icon: FileSignature },
+    { name: 'Templates', href: '/dashboard/templates', icon: Layers },
     { name: 'New Application', href: '/dashboard/new', icon: PlusCircle },
     { name: 'My Documents', href: '/dashboard/documents', icon: FileText },
+    { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   ];
 
   return (

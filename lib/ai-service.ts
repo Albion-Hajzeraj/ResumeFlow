@@ -22,6 +22,94 @@ export interface KeywordAnalysis {
   presentKeywords: string[];
 }
 
+export type ResumeStyle = 'modern' | 'professional' | 'creative';
+
+export async function generateResume(
+  resumeData: {
+    name: string;
+    jobTitle: string;
+    skills?: string[];
+    experience?: ResumeData['experience'];
+    education?: ResumeData['education'];
+  },
+  style: ResumeStyle
+): Promise<string> {
+  try {
+    const response = await fetch('/api/ai/generate-resume', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ...resumeData,
+        style,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate resume');
+    }
+
+    const data = await response.json();
+    return data.resumeHtml;
+  } catch (error) {
+    console.error('Error generating resume:', error);
+    throw error;
+  }
+}
+
+export async function suggestEdits(
+  content: string,
+  docType: 'resume' | 'cover_letter',
+  jobDescription?: string
+): Promise<string[]> {
+  try {
+    const response = await fetch('/api/ai/suggest-edits', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        content,
+        jobDescription,
+        docType,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate suggestions');
+    }
+
+    const data = await response.json();
+    return data.suggestions || [];
+  } catch (error) {
+    console.error('Error generating suggestions:', error);
+    throw error;
+  }
+}
+
+export async function extractSkills(jobDescription: string): Promise<string[]> {
+  try {
+    const response = await fetch('/api/ai/extract-skills', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ jobDescription }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to extract skills');
+    }
+
+    const data = await response.json();
+    return data.skills || [];
+  } catch (error) {
+    console.error('Error extracting skills:', error);
+    throw error;
+  }
+}
+
 export async function generateCoverLetter(
   resumeData: ResumeData,
   jobDescription: string,
