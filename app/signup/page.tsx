@@ -24,19 +24,22 @@ export default function SignUpPage() {
     setError('');
     setLoading(true);
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      setLoading(false);
-      return;
-    }
+    try {
+      if (password.length < 6) {
+        setError('Password must be at least 6 characters');
+        return;
+      }
 
-    const { error } = await signUp(email, password, fullName);
+      const { error } = await signUp(email, password, fullName);
 
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-    } else {
+      if (error) {
+        setError(error.message);
+        return;
+      }
+
       router.push('/dashboard');
+    } finally {
+      setLoading(false);
     }
   };
 

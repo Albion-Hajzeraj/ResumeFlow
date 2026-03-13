@@ -23,13 +23,15 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
 
-    const { error } = await signIn(email, password);
-
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-    } else {
+    try {
+      const { error } = await signIn(email, password);
+      if (error) {
+        setError(error.message);
+        return;
+      }
       router.push('/dashboard');
+    } finally {
+      setLoading(false);
     }
   };
 

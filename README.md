@@ -34,9 +34,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 OPENAI_API_KEY=your_openai_api_key
 OPENAI_MODEL=gpt-4o-mini
 ```
+`OPENAI_API_KEY` is optional, but AI features won’t run without it.
 
 ### 3) Supabase schema
-Use the SQL file in `supabase/schema.sql` to create tables.
+Run the migration in `supabase/migrations/20260310134342_resume_schema.sql` in the Supabase SQL Editor.
 
 ### 4) Run the app
 ```
@@ -52,11 +53,11 @@ Scanned PDFs (image-only) require OCR. The app uses client-side OCR, which can b
 - Prefer text-based PDFs or `.txt` paste when possible
 
 ## Scripts
-- `npm run dev` – start dev server
-- `npm run build` – production build
-- `npm run start` – run production server
-- `npm run lint` – lint
-- `npm run typecheck` – TypeScript checks
+- `npm run dev` - start dev server
+- `npm run build` - production build
+- `npm run start` - run production server
+- `npm run lint` - lint
+- `npm run typecheck` - TypeScript checks
 
 ## Project Structure
 ```
@@ -75,3 +76,4 @@ public/             # Static assets
 
 ## License
 Private. All rights reserved.
+
