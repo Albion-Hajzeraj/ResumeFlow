@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getOpenAiApiKey, getOpenAiModel, openAiChat } from '@/lib/server/openai';
+import { readJson } from '@/lib/server/api-helpers';
 
 const bodySchema = z.object({
   resumeData: z.any(),
@@ -10,12 +11,9 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  let body: z.infer<typeof bodySchema>;
-  try {
-    body = bodySchema.parse(await request.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
+  const parsed = await readJson(request, bodySchema);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   const openaiApiKey = getOpenAiApiKey();
   if (!openaiApiKey) {
@@ -90,4 +88,3 @@ Thank you for considering my application. I look forward to the opportunity to d
 
 Best regards`;
 }
-

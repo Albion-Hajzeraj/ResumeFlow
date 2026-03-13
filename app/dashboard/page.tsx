@@ -8,6 +8,7 @@ import { CirclePlus as PlusCircle, FileText, Briefcase, TrendingUp, Sparkles, Aw
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
+import { LoadingSpinner } from '@/components/loading-spinner';
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
@@ -88,7 +89,7 @@ export default function DashboardPage() {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <LoadingSpinner />
         </div>
       </DashboardLayout>
     );

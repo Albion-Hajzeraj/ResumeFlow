@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getOpenAiApiKey, getOpenAiModel, openAiChat, parseJsonFromModelOutput } from '@/lib/server/openai';
+import { readJson } from '@/lib/server/api-helpers';
 
 const bodySchema = z.object({
   content: z.string().min(1),
@@ -9,23 +10,15 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  let body: z.infer<typeof bodySchema>;
-  try {
-    body = bodySchema.parse(await request.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
+  const parsed = await readJson(request, bodySchema);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   const openaiApiKey = getOpenAiApiKey();
   if (!openaiApiKey) {
     return NextResponse.json(
       {
-        suggestions: [
-          'Use strong action verbs at the start of each bullet.',
-          'Quantify impact with metrics (%, $, time, scale).',
-          'Align keywords with the job description.',
-          'Remove filler phrases and tighten sentences.',
-        ],
+        suggestions: fallbackSuggestions(),
       },
       { status: 200 }
     );
@@ -65,13 +58,18 @@ Keep each suggestion under 18 words.`;
     console.error('Error generating suggestions:', error);
     return NextResponse.json(
       {
-        suggestions: [
-          'Use strong action verbs at the start of each bullet.',
-          'Quantify impact with metrics (%, $, time, scale).',
-        ],
+        suggestions: fallbackSuggestions().slice(0, 2),
       },
       { status: 200 }
     );
   }
 }
 
+function fallbackSuggestions() {
+  return [
+    'Use strong action verbs at the start of each bullet.',
+    'Quantify impact with metrics (%, $, time, scale).',
+    'Align keywords with the job description.',
+    'Remove filler phrases and tighten sentences.',
+  ];
+}

@@ -1,65 +1,5 @@
-/*
-  # Resume Generator Schema
-
-  1. New Tables
-    - `profiles`
-      - `id` (uuid, references auth.users)
-      - `email` (text)
-      - `full_name` (text)
-      - `created_at` (timestamp)
-      - `updated_at` (timestamp)
-    
-    - `resumes`
-      - `id` (uuid, primary key)
-      - `user_id` (uuid, references profiles)
-      - `title` (text) - e.g., "Software Engineer Resume"
-      - `original_content` (text) - extracted text from upload
-      - `structured_data` (jsonb) - parsed resume sections
-      - `created_at` (timestamp)
-      - `updated_at` (timestamp)
-    
-    - `job_applications`
-      - `id` (uuid, primary key)
-      - `user_id` (uuid, references profiles)
-      - `resume_id` (uuid, references resumes)
-      - `company_name` (text)
-      - `job_title` (text)
-      - `job_description` (text)
-      - `keywords` (jsonb) - extracted keywords
-      - `match_score` (integer) - 0-100
-      - `status` (text) - draft, applied, interview, etc.
-      - `created_at` (timestamp)
-      - `updated_at` (timestamp)
-    
-    - `cover_letters`
-      - `id` (uuid, primary key)
-      - `user_id` (uuid, references profiles)
-      - `job_application_id` (uuid, references job_applications)
-      - `content` (text)
-      - `version` (integer)
-      - `created_at` (timestamp)
-      - `updated_at` (timestamp)
-    
-    - `optimized_resumes`
-      - `id` (uuid, primary key)
-      - `user_id` (uuid, references profiles)
-      - `job_application_id` (uuid, references job_applications)
-      - `original_resume_id` (uuid, references resumes)
-      - `optimized_content` (jsonb)
-      - `suggestions` (jsonb)
-      - `version` (integer)
-      - `created_at` (timestamp)
-      - `updated_at` (timestamp)
-
-  2. Security
-    - Enable RLS on all tables
-    - Add policies for authenticated users to manage their own data
-*/
-
--- Ensure gen_random_uuid() is available
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- Generic updated_at trigger
 CREATE OR REPLACE FUNCTION public.set_updated_at()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -70,7 +10,6 @@ BEGIN
 END;
 $$;
 
--- Create profiles table
 CREATE TABLE IF NOT EXISTS profiles (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email text UNIQUE NOT NULL,
@@ -79,7 +18,6 @@ CREATE TABLE IF NOT EXISTS profiles (
   updated_at timestamptz DEFAULT now()
 );
 
--- Create resumes table
 CREATE TABLE IF NOT EXISTS resumes (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -90,7 +28,6 @@ CREATE TABLE IF NOT EXISTS resumes (
   updated_at timestamptz DEFAULT now()
 );
 
--- Create job_applications table
 CREATE TABLE IF NOT EXISTS job_applications (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -105,7 +42,6 @@ CREATE TABLE IF NOT EXISTS job_applications (
   updated_at timestamptz DEFAULT now()
 );
 
--- Create cover_letters table
 CREATE TABLE IF NOT EXISTS cover_letters (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -116,7 +52,6 @@ CREATE TABLE IF NOT EXISTS cover_letters (
   updated_at timestamptz DEFAULT now()
 );
 
--- Create optimized_resumes table
 CREATE TABLE IF NOT EXISTS optimized_resumes (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -129,7 +64,6 @@ CREATE TABLE IF NOT EXISTS optimized_resumes (
   updated_at timestamptz DEFAULT now()
 );
 
--- Generator drafts table
 CREATE TABLE IF NOT EXISTS generator_drafts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -144,7 +78,6 @@ CREATE TABLE IF NOT EXISTS generator_drafts (
   updated_at timestamptz DEFAULT now()
 );
 
--- Generator versions table
 CREATE TABLE IF NOT EXISTS generator_versions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -155,7 +88,6 @@ CREATE TABLE IF NOT EXISTS generator_versions (
   created_at timestamptz DEFAULT now()
 );
 
--- Basic constraints
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -206,7 +138,6 @@ BEGIN
   END IF;
 END $$;
 
--- Enable Row Level Security
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE resumes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE job_applications ENABLE ROW LEVEL SECURITY;
@@ -215,7 +146,6 @@ ALTER TABLE optimized_resumes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE generator_drafts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE generator_versions ENABLE ROW LEVEL SECURITY;
 
--- Profiles policies
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -253,7 +183,6 @@ BEGIN
   END IF;
 END $$;
 
--- Resumes policies
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -303,7 +232,6 @@ BEGIN
   END IF;
 END $$;
 
--- Job applications policies
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -353,7 +281,6 @@ BEGIN
   END IF;
 END $$;
 
--- Cover letters policies
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -403,7 +330,6 @@ BEGIN
   END IF;
 END $$;
 
--- Optimized resumes policies
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -453,7 +379,6 @@ BEGIN
   END IF;
 END $$;
 
--- Generator drafts policies
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -503,7 +428,6 @@ BEGIN
   END IF;
 END $$;
 
--- Generator versions policies
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -540,7 +464,6 @@ BEGIN
   END IF;
 END $$;
 
--- Create indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_resumes_user_id ON resumes(user_id);
 CREATE INDEX IF NOT EXISTS idx_job_applications_user_id ON job_applications(user_id);
 CREATE INDEX IF NOT EXISTS idx_cover_letters_user_id ON cover_letters(user_id);
@@ -557,7 +480,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_cover_letters_application_version
 CREATE UNIQUE INDEX IF NOT EXISTS uq_optimized_resumes_application_version
   ON optimized_resumes(job_application_id, version);
 
--- updated_at triggers
 DROP TRIGGER IF EXISTS set_updated_at_profiles ON profiles;
 CREATE TRIGGER set_updated_at_profiles
 BEFORE UPDATE ON profiles
@@ -593,3 +515,4 @@ CREATE TRIGGER set_updated_at_generator_drafts
 BEFORE UPDATE ON generator_drafts
 FOR EACH ROW
 EXECUTE FUNCTION public.set_updated_at();
+

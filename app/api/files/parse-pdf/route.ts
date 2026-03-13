@@ -14,30 +14,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing file' }, { status: 400 });
     }
 
-    const name = file.name || '';
-    const type = file.type || '';
-    if (!name.toLowerCase().endsWith('.pdf') && type !== 'application/pdf') {
+    if (!isPdfFile(file)) {
       return NextResponse.json({ error: 'File must be a PDF' }, { status: 400 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-
-    // Use the CJS build to avoid webpack export analysis issues with pdfjs-dist in Next 13.
-    const require = createRequire(import.meta.url);
-    const pdfParse = require('pdf-parse') as any;
-    let text = '';
-
-    if (typeof pdfParse === 'function') {
-      const result = await pdfParse(buffer);
-      text = String(result?.text || '').trim();
-    } else if (pdfParse?.PDFParse) {
-      const parser = new pdfParse.PDFParse({ data: buffer });
-      const result = await parser.getText();
-      await parser.destroy();
-      text = String(result?.text || '').trim();
-    } else {
-      throw new Error('pdf-parse did not load correctly');
-    }
+    const text = await extractPdfText(buffer);
 
     if (!text) {
       return NextResponse.json(
@@ -57,4 +39,29 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+function isPdfFile(file: File) {
+  const name = file.name || '';
+  const type = file.type || '';
+  return name.toLowerCase().endsWith('.pdf') || type === 'application/pdf';
+}
+
+async function extractPdfText(buffer: Buffer) {
+  // Use the CJS build to avoid webpack export analysis issues with pdfjs-dist in Next 13.
+  const require = createRequire(import.meta.url);
+  const pdfParse = require('pdf-parse') as any;
+
+  if (typeof pdfParse === 'function') {
+    const result = await pdfParse(buffer);
+    return String(result?.text || '').trim();
+  }
+  if (pdfParse?.PDFParse) {
+    const parser = new pdfParse.PDFParse({ data: buffer });
+    const result = await parser.getText();
+    await parser.destroy();
+    return String(result?.text || '').trim();
+  }
+
+  throw new Error('pdf-parse did not load correctly');
 }

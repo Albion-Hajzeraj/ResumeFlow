@@ -1,20 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
-// NOTE: Next.js only inlines `NEXT_PUBLIC_*` env vars when accessed via static property access.
-// Using `process.env[name]` will be `undefined` in the browser bundle.
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+function requireEnv(name: 'NEXT_PUBLIC_SUPABASE_URL' | 'NEXT_PUBLIC_SUPABASE_ANON_KEY') {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing env var ${name}. Check your .env and restart the dev server.`);
+  }
+  return value;
+}
 
-if (!supabaseUrl) {
-  throw new Error(
-    'Missing env var NEXT_PUBLIC_SUPABASE_URL. Check your .env and restart the dev server.'
-  );
-}
-if (!supabaseAnonKey) {
-  throw new Error(
-    'Missing env var NEXT_PUBLIC_SUPABASE_ANON_KEY. Check your .env and restart the dev server.'
-  );
-}
+const supabaseUrl = requireEnv('NEXT_PUBLIC_SUPABASE_URL');
+const supabaseAnonKey = requireEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY');
 
 export type Database = {
   public: {

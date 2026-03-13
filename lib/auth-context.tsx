@@ -16,17 +16,23 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 async function ensureProfile(params: { id: string; email: string; fullName?: string }) {
-  // Idempotent profile creation: safe to call on every sign-in.
-  await supabase
-    .from('profiles')
-    .upsert(
-      {
-        id: params.id,
-        email: params.email,
-        full_name: params.fullName ?? null,
-      },
-      { onConflict: 'id' }
-    );
+  await supabase.from('profiles').upsert(
+    {
+      id: params.id,
+      email: params.email,
+      full_name: params.fullName ?? null,
+    },
+    { onConflict: 'id' }
+  );
+}
+
+async function tryEnsureProfile(user: User | null, fullName?: string) {
+  if (!user?.email) return;
+  try {
+    await ensureProfile({ id: user.id, email: user.email, fullName });
+  } catch {
+    // best-effort profile sync
+  }
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -46,11 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(nextUser);
         setLoading(false);
 
-        if (nextUser?.email) {
-          void ensureProfile({ id: nextUser.id, email: nextUser.email }).catch(() => {
-            // non-blocking profile sync
-          });
-        }
+        void tryEnsureProfile(nextUser);
       } catch {
         if (cancelled) return;
         setUser(null);
@@ -65,9 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(nextUser);
       setLoading(false);
 
-      if (nextUser?.email) {
-        await ensureProfile({ id: nextUser.id, email: nextUser.email });
-      }
+      await tryEnsureProfile(nextUser);
     });
 
     return () => {
@@ -83,9 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     if (data.user && !error) {
-      if (data.user.email) {
-        await ensureProfile({ id: data.user.id, email: data.user.email, fullName });
-      }
+      await tryEnsureProfile(data.user, fullName);
     }
 
     return { error };

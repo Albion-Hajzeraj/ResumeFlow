@@ -24,6 +24,20 @@ export interface KeywordAnalysis {
 
 export type ResumeStyle = 'modern' | 'professional' | 'creative';
 
+async function postJson<T>(url: string, payload: unknown, errorMessage: string): Promise<T> {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(errorMessage);
+  }
+
+  return (await response.json()) as T;
+}
+
 export async function generateResume(
   resumeData: {
     name: string;
@@ -35,22 +49,11 @@ export async function generateResume(
   style: ResumeStyle
 ): Promise<string> {
   try {
-    const response = await fetch('/api/ai/generate-resume', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        ...resumeData,
-        style,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to generate resume');
-    }
-
-    const data = await response.json();
+    const data = await postJson<{ resumeHtml: string }>(
+      '/api/ai/generate-resume',
+      { ...resumeData, style },
+      'Failed to generate resume'
+    );
     return data.resumeHtml;
   } catch (error) {
     console.error('Error generating resume:', error);
@@ -64,23 +67,11 @@ export async function suggestEdits(
   jobDescription?: string
 ): Promise<string[]> {
   try {
-    const response = await fetch('/api/ai/suggest-edits', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        content,
-        jobDescription,
-        docType,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to generate suggestions');
-    }
-
-    const data = await response.json();
+    const data = await postJson<{ suggestions?: string[] }>(
+      '/api/ai/suggest-edits',
+      { content, jobDescription, docType },
+      'Failed to generate suggestions'
+    );
     return data.suggestions || [];
   } catch (error) {
     console.error('Error generating suggestions:', error);
@@ -90,19 +81,11 @@ export async function suggestEdits(
 
 export async function extractSkills(jobDescription: string): Promise<string[]> {
   try {
-    const response = await fetch('/api/ai/extract-skills', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ jobDescription }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to extract skills');
-    }
-
-    const data = await response.json();
+    const data = await postJson<{ skills?: string[] }>(
+      '/api/ai/extract-skills',
+      { jobDescription },
+      'Failed to extract skills'
+    );
     return data.skills || [];
   } catch (error) {
     console.error('Error extracting skills:', error);
@@ -117,24 +100,11 @@ export async function generateCoverLetter(
   jobTitle: string
 ): Promise<string> {
   try {
-    const response = await fetch('/api/ai/generate-cover-letter', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        resumeData,
-        jobDescription,
-        companyName,
-        jobTitle,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to generate cover letter');
-    }
-
-    const data = await response.json();
+    const data = await postJson<{ coverLetter: string }>(
+      '/api/ai/generate-cover-letter',
+      { resumeData, jobDescription, companyName, jobTitle },
+      'Failed to generate cover letter'
+    );
     return data.coverLetter;
   } catch (error) {
     console.error('Error generating cover letter:', error);
@@ -150,22 +120,11 @@ export async function optimizeResume(
   suggestions: string[];
 }> {
   try {
-    const response = await fetch('/api/ai/optimize-resume', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        resumeData,
-        jobDescription,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to optimize resume');
-    }
-
-    const data = await response.json();
+    const data = await postJson<{ optimizedResume: ResumeData; suggestions: string[] }>(
+      '/api/ai/optimize-resume',
+      { resumeData, jobDescription },
+      'Failed to optimize resume'
+    );
     return {
       optimizedResume: data.optimizedResume,
       suggestions: data.suggestions,
@@ -181,23 +140,11 @@ export async function analyzeKeywords(
   jobDescription: string
 ): Promise<KeywordAnalysis> {
   try {
-    const response = await fetch('/api/ai/analyze-keywords', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        resumeContent,
-        jobDescription,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to analyze keywords');
-    }
-
-    const data = await response.json();
-    return data;
+    return await postJson<KeywordAnalysis>(
+      '/api/ai/analyze-keywords',
+      { resumeContent, jobDescription },
+      'Failed to analyze keywords'
+    );
   } catch (error) {
     console.error('Error analyzing keywords:', error);
     throw error;
@@ -206,19 +153,11 @@ export async function analyzeKeywords(
 
 export async function parseResumeText(text: string): Promise<ResumeData> {
   try {
-    const response = await fetch('/api/ai/parse-resume', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ text }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to parse resume');
-    }
-
-    const data = await response.json();
+    const data = await postJson<{ parsedResume: ResumeData }>(
+      '/api/ai/parse-resume',
+      { text },
+      'Failed to parse resume'
+    );
     return data.parsedResume;
   } catch (error) {
     console.error('Error parsing resume:', error);

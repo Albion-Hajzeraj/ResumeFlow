@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getOpenAiApiKey, getOpenAiModel, openAiChat } from '@/lib/server/openai';
+import { readJson } from '@/lib/server/api-helpers';
 
 const experienceSchema = z.object({
   title: z.string().min(1),
@@ -25,42 +26,16 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  let body: z.infer<typeof bodySchema>;
-  try {
-    body = bodySchema.parse(await request.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
+  const parsed = await readJson(request, bodySchema);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   const openaiApiKey = getOpenAiApiKey();
   if (!openaiApiKey) {
     return NextResponse.json({ resumeHtml: generateFallbackResume(body) }, { status: 200 });
   }
 
-  const styleHint =
-    body.style === 'modern'
-      ? 'Clean, contemporary layout with concise sections and strong action verbs.'
-      : body.style === 'creative'
-        ? 'Distinctive, energetic tone with tasteful flair while staying professional.'
-        : 'Traditional, formal, and ATS-friendly tone with clear section headings.';
-
-  const prompt = `Create a ${body.style} resume in HTML using the details below.
-
-Candidate:
-Name: ${body.name}
-Target Job Title: ${body.jobTitle}
-Skills: ${(body.skills || []).join(', ')}
-Experience: ${JSON.stringify(body.experience || [], null, 2)}
-Education: ${JSON.stringify(body.education || [], null, 2)}
-
-Requirements:
-- Output ONLY valid HTML (no markdown, no code fences).
-- Include sections: Summary, Experience, Skills, Education.
-- Keep it to one page if possible.
-- Use bullet points for achievements under each role.
-- ${styleHint}
-- Do not invent employers or dates; if data is missing, keep it brief or omit details.
-`;
+  const prompt = buildPrompt(body);
 
   try {
     const data = await openAiChat({
@@ -84,6 +59,37 @@ Requirements:
     console.error('Error generating resume:', error);
     return NextResponse.json({ resumeHtml: generateFallbackResume(body) }, { status: 200 });
   }
+}
+
+const styleHints: Record<z.infer<typeof bodySchema>['style'], string> = {
+  modern: 'Clean, contemporary layout with concise sections and strong action verbs.',
+  professional: 'Traditional, formal, and ATS-friendly tone with clear section headings.',
+  creative: 'Distinctive, energetic tone with tasteful flair while staying professional.',
+};
+
+function buildPrompt(body: z.infer<typeof bodySchema>) {
+  const hint = styleHints[body.style];
+  const skills = (body.skills || []).join(', ');
+  const exp = JSON.stringify(body.experience || [], null, 2);
+  const edu = JSON.stringify(body.education || [], null, 2);
+
+  return `Create a ${body.style} resume in HTML using the details below.
+
+Candidate:
+Name: ${body.name}
+Target Job Title: ${body.jobTitle}
+Skills: ${skills}
+Experience: ${exp}
+Education: ${edu}
+
+Requirements:
+- Output ONLY valid HTML (no markdown, no code fences).
+- Include sections: Summary, Experience, Skills, Education.
+- Keep it to one page if possible.
+- Use bullet points for achievements under each role.
+- ${hint}
+- Do not invent employers or dates; if data is missing, keep it brief or omit details.
+`;
 }
 
 function generateFallbackResume(body: z.infer<typeof bodySchema>) {

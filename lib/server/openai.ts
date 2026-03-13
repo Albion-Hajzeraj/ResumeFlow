@@ -17,7 +17,6 @@ export function getOpenAiApiKey() {
 }
 
 export function getOpenAiModel() {
-  // Configurable so you can swap models without code changes.
   return process.env.OPENAI_MODEL || 'gpt-4o-mini';
 }
 
@@ -35,22 +34,29 @@ function stripCodeFences(text: string) {
   return lines.slice(1, -1).join('\n').trim();
 }
 
+function findJsonSlice(text: string) {
+  const firstBrace = text.indexOf('{');
+  const lastBrace = text.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    return text.slice(firstBrace, lastBrace + 1);
+  }
+
+  const firstBracket = text.indexOf('[');
+  const lastBracket = text.lastIndexOf(']');
+  if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+    return text.slice(firstBracket, lastBracket + 1);
+  }
+
+  return null;
+}
+
 export function parseJsonFromModelOutput(output: string) {
   const candidate = stripCodeFences(output);
   try {
     return JSON.parse(candidate);
   } catch {
-    const firstBrace = candidate.indexOf('{');
-    const lastBrace = candidate.lastIndexOf('}');
-    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-      return JSON.parse(candidate.slice(firstBrace, lastBrace + 1));
-    }
-
-    const firstBracket = candidate.indexOf('[');
-    const lastBracket = candidate.lastIndexOf(']');
-    if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
-      return JSON.parse(candidate.slice(firstBracket, lastBracket + 1));
-    }
+    const slice = findJsonSlice(candidate);
+    if (slice) return JSON.parse(slice);
 
     throw new Error('Model response was not valid JSON');
   }
@@ -93,4 +99,3 @@ export async function openAiChat(request: {
 
   return JSON.parse(text);
 }
-

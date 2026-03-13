@@ -6,24 +6,22 @@ import {
   openAiChat,
   parseJsonFromModelOutput,
 } from '@/lib/server/openai';
+import { readJson } from '@/lib/server/api-helpers';
 
 const bodySchema = z.object({
   text: z.string().min(1),
 });
 
 export async function POST(request: NextRequest) {
-  let body: z.infer<typeof bodySchema>;
-  try {
-    body = bodySchema.parse(await request.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
+  const parsed = await readJson(request, bodySchema);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   const openaiApiKey = getOpenAiApiKey();
-  const cleanedText = preprocessResumeText(body.text);
+  const cleanedText = cleanResumeText(body.text);
   if (!openaiApiKey) {
     return NextResponse.json(
-      { parsedResume: generateFallbackParsedResume(cleanedText) },
+      { parsedResume: fallbackParsedResume(cleanedText) },
       { status: 200 }
     );
   }
@@ -88,13 +86,13 @@ Rules:
   } catch (error) {
     console.error('Error parsing resume:', error);
     return NextResponse.json(
-      { parsedResume: generateFallbackParsedResume(cleanedText) },
+      { parsedResume: fallbackParsedResume(cleanedText) },
       { status: 200 }
     );
   }
 }
 
-function preprocessResumeText(text: string) {
+function cleanResumeText(text: string) {
   return text
     .replace(/\r\n/g, '\n')
     .replace(/[ \t]+/g, ' ')
@@ -104,7 +102,7 @@ function preprocessResumeText(text: string) {
 }
 
 function normalizeParsedResume(parsed: any) {
-  if (!parsed || typeof parsed !== 'object') return generateFallbackParsedResume('');
+  if (!parsed || typeof parsed !== 'object') return fallbackParsedResume('');
   return {
     summary: typeof parsed.summary === 'string' ? parsed.summary.trim() : '',
     experience: Array.isArray(parsed.experience)
@@ -139,7 +137,7 @@ function normalizeParsedResume(parsed: any) {
   };
 }
 
-function generateFallbackParsedResume(text: string) {
+function fallbackParsedResume(text: string) {
   const emailMatch = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
   const phoneMatch = text.match(/(\+?\d[\d(). -]{7,}\d)/);
   const summary = text.split('\n').slice(0, 6).join(' ').trim().slice(0, 280);

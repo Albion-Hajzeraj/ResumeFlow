@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getOpenAiApiKey, getOpenAiModel, openAiChat, parseJsonFromModelOutput } from '@/lib/server/openai';
+import { readJson } from '@/lib/server/api-helpers';
 
 const bodySchema = z.object({
   jobDescription: z.string().min(1),
 });
 
 export async function POST(request: NextRequest) {
-  let body: z.infer<typeof bodySchema>;
-  try {
-    body = bodySchema.parse(await request.json());
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
+  const parsed = await readJson(request, bodySchema);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   const openaiApiKey = getOpenAiApiKey();
   if (!openaiApiKey) {
@@ -77,4 +75,3 @@ function extractFallbackSkills(description: string) {
   ];
   return common.filter((skill) => lower.includes(skill.toLowerCase()));
 }
-
