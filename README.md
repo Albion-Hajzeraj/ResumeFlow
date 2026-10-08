@@ -1,4 +1,4 @@
-# ResumeFlow AI
+# ResumeFlow 
 
 AI-powered dashboard to create, optimize, and track job applications. Upload or paste a resume, parse structured experience, generate optimized resumes and cover letters, and manage everything in a Supabase-backed dashboard.
 
